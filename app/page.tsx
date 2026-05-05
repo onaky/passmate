@@ -8,13 +8,17 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    getProfile().then((profile) => {
-      if (profile?.selectedCertId) {
-        router.replace("/scan");
-      } else {
+    getProfile()
+      .then((profile) => {
+        if (profile?.selectedCertId) {
+          router.replace("/scan");
+        } else {
+          router.replace("/onboarding");
+        }
+      })
+      .catch(() => {
         router.replace("/onboarding");
-      }
-    });
+      });
   }, [router]);
 
   return (

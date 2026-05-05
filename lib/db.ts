@@ -19,6 +19,9 @@ type PassMateDB = {
 let dbPromise: Promise<IDBPDatabase<PassMateDB>> | null = null;
 
 function getDB(): Promise<IDBPDatabase<PassMateDB>> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("IndexedDB is not available in server environment"));
+  }
   if (!dbPromise) {
     dbPromise = openDB<PassMateDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
