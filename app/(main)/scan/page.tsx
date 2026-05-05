@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { X, AlertTriangle, BookOpenCheck, HelpCircle, BarChart2, NotebookPen } from "lucide-react";
 import { ImagePicker } from "@/components/features/scan/image-picker";
 import { AnalyzingOverlay } from "@/components/features/scan/analyzing-overlay";
 import { PageHeader } from "@/components/layout/page-header";
@@ -60,7 +61,7 @@ export default function ScanPage() {
 
       <div className="px-5">
         <PageHeader
-          title="📷 스캔"
+          title="스캔"
           subtitle={`${cert.icon} ${cert.name} 학습 중`}
         />
 
@@ -75,17 +76,18 @@ export default function ScanPage() {
             />
             <button
               onClick={() => { setPreviewSrc(null); setError(null); }}
-              className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm"
+              className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-8 h-8 flex items-center justify-center"
             >
-              ✕
+              <X size={14} />
             </button>
           </div>
         )}
 
         {/* 에러 */}
         {error && (
-          <div className="mb-4 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
-            ⚠️ {error}
+          <div className="mb-4 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm flex items-start gap-2">
+            <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+            {error}
           </div>
         )}
 
@@ -97,11 +99,11 @@ export default function ScanPage() {
           <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">
             이런 사진을 찍어보세요!
           </h3>
-          <ul className="text-xs text-[var(--muted-foreground)] space-y-1">
-            <li>📖 교재의 개념 설명 페이지</li>
-            <li>❓ 기출문제나 연습 문제</li>
-            <li>📊 색상환, 도표, 그림</li>
-            <li>🗒️ 직접 정리한 노트</li>
+          <ul className="text-xs text-[var(--muted-foreground)] space-y-2">
+            <li className="flex items-center gap-2"><BookOpenCheck size={13} /> 교재의 개념 설명 페이지</li>
+            <li className="flex items-center gap-2"><HelpCircle size={13} /> 기출문제나 연습 문제</li>
+            <li className="flex items-center gap-2"><BarChart2 size={13} /> 색상환, 도표, 그림</li>
+            <li className="flex items-center gap-2"><NotebookPen size={13} /> 직접 정리한 노트</li>
           </ul>
         </div>
       </div>

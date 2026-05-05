@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 
 interface PageHeaderProps {
   title: string;
@@ -14,9 +15,9 @@ export function PageHeader({ title, subtitle, backHref, action }: PageHeaderProp
       {backHref && (
         <Link
           href={backHref}
-          className="text-2xl text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
         >
-          ←
+          <ChevronLeft size={26} />
         </Link>
       )}
       <div className="flex-1">

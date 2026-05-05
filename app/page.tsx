@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { getProfile } from "@/lib/db";
 
 export default function RootPage() {
@@ -23,7 +24,7 @@ export default function RootPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="text-4xl animate-spin">🎓</div>
+      <Loader2 size={40} className="text-indigo-400 animate-spin" />
     </div>
   );
 }

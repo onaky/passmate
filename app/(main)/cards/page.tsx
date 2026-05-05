@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import {
+  BookOpen, NotebookPen, Camera, Zap, ChevronUp, ChevronDown, BookMarked
+} from "lucide-react";
 import { getAllCards, deleteCard, getProfile, getDueCards } from "@/lib/db";
 import { getMasteryLabel } from "@/lib/spaced-repetition";
 import { xpToLevel, formatStudyTime } from "@/lib/utils";
@@ -48,7 +51,7 @@ export default function CardsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-4xl animate-spin">📚</div>
+        <BookOpen size={40} className="text-indigo-400 animate-spin" />
       </div>
     );
   }
@@ -56,11 +59,10 @@ export default function CardsPage() {
   return (
     <div className="px-5">
       <PageHeader
-        title="📚 내 암기장"
+        title="내 암기장"
         subtitle={`${cards.length}개의 학습 카드`}
       />
 
-      {/* 사용자 레벨 카드 */}
       {profile && (
         <div className="bg-gradient-to-br from-indigo-500/20 to-pink-500/20 border border-indigo-500/30 rounded-2xl p-4 mb-5">
           <div className="flex items-center justify-between mb-3">
@@ -87,7 +89,6 @@ export default function CardsPage() {
         </div>
       )}
 
-      {/* 통계 카드 */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 text-center">
           <div className="text-xl font-black text-indigo-400">{cards.length}</div>
@@ -103,17 +104,15 @@ export default function CardsPage() {
         </div>
       </div>
 
-      {/* 복습 대기 CTA */}
       {dueCount > 0 && (
         <button
           onClick={() => router.push("/play")}
-          className="w-full py-3 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-300 font-semibold text-sm mb-5 active:scale-95 transition-transform"
+          className="w-full py-3 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-300 font-semibold text-sm mb-5 active:scale-95 transition-transform flex items-center justify-center gap-2"
         >
-          ⚡ 복습 대기 {dueCount}개 — 지금 퀴즈 풀기
+          <Zap size={15} /> 복습 대기 {dueCount}개 — 지금 퀴즈 풀기
         </button>
       )}
 
-      {/* 자격증 필터 */}
       {cards.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1">
           <button
@@ -144,10 +143,9 @@ export default function CardsPage() {
         </div>
       )}
 
-      {/* 카드 목록 */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-          <div className="text-5xl">📝</div>
+          <NotebookPen size={48} className="text-[var(--muted-foreground)]" />
           <div>
             <h2 className="text-lg font-bold text-[var(--foreground)] mb-1">
               아직 저장된 카드가 없어요
@@ -158,9 +156,9 @@ export default function CardsPage() {
           </div>
           <button
             onClick={() => router.push("/scan")}
-            className="px-6 py-3 rounded-2xl bg-indigo-500 text-white font-bold active:scale-95 transition-transform"
+            className="px-6 py-3 rounded-2xl bg-indigo-500 text-white font-bold active:scale-95 transition-transform flex items-center justify-center gap-2"
           >
-            📷 첫 카드 만들기
+            <Camera size={16} /> 첫 카드 만들기
           </button>
         </div>
       ) : (
@@ -212,8 +210,8 @@ export default function CardsPage() {
                         ))}
                       </div>
                     </div>
-                    <div className="text-[var(--muted-foreground)] text-sm ml-1">
-                      {expanded ? "▲" : "▼"}
+                    <div className="text-[var(--muted-foreground)] ml-1">
+                      {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                   </div>
                 </button>
@@ -221,11 +219,13 @@ export default function CardsPage() {
                 {expanded && (
                   <div className="px-4 pb-4 border-t border-[var(--border)] pt-3">
                     <div className="text-sm text-[var(--foreground)] leading-relaxed mb-3">
-                      <span className="text-xs text-emerald-400 font-semibold block mb-1">📖 핵심 요약</span>
+                      <div className="flex items-center gap-1 text-xs text-emerald-400 font-semibold mb-1">
+                        <BookMarked size={12} /> 핵심 요약
+                      </div>
                       {card.analysis.summary}
                     </div>
                     <div className="text-sm text-indigo-300 leading-relaxed mb-3 bg-indigo-500/10 rounded-xl p-3">
-                      ✨ {card.analysis.mnemonic}
+                      {card.analysis.mnemonic}
                     </div>
                     <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)] mb-3">
                       <span>복습 {card.reviewCount}회 | 정답 {card.correctCount}회</span>
