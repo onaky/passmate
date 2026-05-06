@@ -6,7 +6,7 @@ import Image from "next/image";
 import {
   BookOpen, NotebookPen, Camera, Zap, ChevronUp, ChevronDown, BookMarked
 } from "lucide-react";
-import { getAllCards, deleteCard, getProfile, getDueCards } from "@/lib/db";
+import { getAllCards, deleteCard, getProfile, getDueCards } from "@/lib/client-db";
 import { getMasteryLabel } from "@/lib/spaced-repetition";
 import { xpToLevel, formatStudyTime } from "@/lib/utils";
 import { getCertification, CERTIFICATIONS } from "@/lib/certifications";

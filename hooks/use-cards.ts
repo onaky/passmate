@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { LearningCard, AnalysisResult } from "@/types";
-import { getAllCards, saveCard, deleteCard, getDueCards } from "@/lib/db";
+import { getAllCards, saveCard, deleteCard, getDueCards } from "@/lib/client-db";
 import { generateId } from "@/lib/utils";
 import { SPACED_REPETITION_INTERVALS } from "@/types";
 

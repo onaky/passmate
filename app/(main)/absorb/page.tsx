@@ -11,7 +11,7 @@ import {
   ChevronLeft, ChevronRight
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { saveCard, getDueCards } from "@/lib/db";
+import { saveCard, getDueCards } from "@/lib/client-db";
 import { generateId } from "@/lib/utils";
 import { getMasteryLabel } from "@/lib/spaced-repetition";
 import { scheduleReviewNotification, calcNotificationDelay } from "@/lib/notifications";

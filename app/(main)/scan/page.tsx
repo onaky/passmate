@@ -7,7 +7,7 @@ import { ImagePicker } from "@/components/features/scan/image-picker";
 import { AnalyzingOverlay } from "@/components/features/scan/analyzing-overlay";
 import { PageHeader } from "@/components/layout/page-header";
 import { getCertification } from "@/lib/certifications";
-import { getProfile } from "@/lib/db";
+import { getProfile } from "@/lib/client-db";
 import type { AnalysisResult } from "@/types";
 
 export default function ScanPage() {

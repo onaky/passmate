@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GraduationCap, Check, ArrowRight, Loader2 } from "lucide-react";
 import { CERTIFICATIONS } from "@/lib/certifications";
-import { saveProfile } from "@/lib/db";
+import { saveProfile } from "@/lib/client-db";
 import { generateId } from "@/lib/utils";
 import type { UserProfile } from "@/types";
 

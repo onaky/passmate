@@ -9,9 +9,8 @@ import {
   Gamepad2, Star, PartyPopper, Frown, Target, RotateCcw,
   Camera, Trophy, Lightbulb, CheckCircle2, Loader2, SkipForward
 } from "lucide-react";
-import { getDueCards, saveCard, getProfile } from "@/lib/db";
+import { getDueCards, updateCard, getProfile, saveProfile } from "@/lib/client-db";
 import { calculateNextReview, calculateXP, getMasteryLabel } from "@/lib/spaced-repetition";
-import { saveProfile } from "@/lib/db";
 import { xpToLevel } from "@/lib/utils";
 import { ParticleBurst } from "@/components/features/quiz/particle-burst";
 import { ComboDisplay } from "@/components/features/quiz/combo-display";
@@ -73,7 +72,7 @@ export default function PlayPage() {
       ...updates,
       lastReviewedAt: Date.now(),
     };
-    await saveCard(updatedCard);
+    await updateCard(updatedCard);
 
     const newCombo = answer === "correct" ? combo + 1 : 0;
     const newMaxCombo = Math.max(maxCombo, newCombo);

@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  profile      Profile?
+  cards        Card[]
+}
+
+model Profile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selectedCertId    String   @default("COLORIST")
+  level             Int      @default(1)
+  xp                Int      @default(0)
+  totalStudySeconds Int      @default(0)
+  streak            Int      @default(0)
+  lastStudiedAt     BigInt   @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Card {
+  id             String  @id @default(cuid())
+  userId         String
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certId         String
+  imageBase64    String? @db.Text
+  analysisJson   String  @db.Text
+  masteryLevel   Int     @default(0)
+  nextReviewAt   BigInt
+  lastReviewedAt BigInt
+  createdAt      BigInt
+  reviewCount    Int     @default(0)
+  correctCount   Int     @default(0)
+
+  @@index([userId, certId])
+  @@index([userId, nextReviewAt])
+}

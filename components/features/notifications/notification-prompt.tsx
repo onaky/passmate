@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell, BellOff, X } from "lucide-react";
 import { requestNotificationPermission, isNotificationSupported, scheduleReviewNotification, calcNotificationDelay } from "@/lib/notifications";
-import { getDueCards } from "@/lib/db";
+import { getDueCards } from "@/lib/client-db";
 
 export function NotificationPrompt() {
   const [show, setShow] = useState(false);

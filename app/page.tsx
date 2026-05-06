@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { getProfile } from "@/lib/db";
+import { getProfile } from "@/lib/client-db";
 
 export default function RootPage() {
   const router = useRouter();

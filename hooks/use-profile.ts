@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { UserProfile } from "@/types";
-import { getProfile, saveProfile } from "@/lib/db";
+import { getProfile, saveProfile } from "@/lib/client-db";
 import { generateId } from "@/lib/utils";
 
 function createDefaultProfile(certId = "COLORIST"): UserProfile {
