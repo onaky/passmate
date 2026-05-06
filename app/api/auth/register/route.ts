@@ -34,7 +34,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const res = NextResponse.json({ userId: user.id, username: user.username }, { status: 201 });
     res.cookies.set(cookieOptions(token));
     return res;
-  } catch {
+  } catch (e) {
+    console.error("[register]", e);
     return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
   }
 }

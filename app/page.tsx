@@ -1,26 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { getProfile } from "@/lib/client-db";
 
 export default function RootPage() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-
     let cancelled = false;
 
-    getProfile()
-      .then((profile) => {
+    const timeout = setTimeout(() => {
+      if (!cancelled) router.replace("/onboarding");
+    }, 5000);
+
+    fetch("/api/profile")
+      .then((r) => r.ok ? r.json() : null)
+      .then((profile: { selectedCertId?: string } | null) => {
         if (cancelled) return;
+        clearTimeout(timeout);
         if (profile?.selectedCertId) {
           router.replace("/scan");
         } else {
@@ -28,11 +26,17 @@ export default function RootPage() {
         }
       })
       .catch(() => {
-        if (!cancelled) router.replace("/onboarding");
+        if (cancelled) return;
+        clearTimeout(timeout);
+        router.replace("/onboarding");
       });
 
-    return () => { cancelled = true; };
-  }, [mounted, router]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
