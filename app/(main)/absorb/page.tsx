@@ -7,59 +7,98 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   BookOpen, Sparkles, Tag, Link2, Target,
-  BookMarked, Camera, Gamepad2, Loader2, CheckCircle2
+  BookMarked, Camera, Gamepad2, Loader2, CheckCircle2,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { saveCard } from "@/lib/db";
+import { saveCard, getDueCards } from "@/lib/db";
 import { generateId } from "@/lib/utils";
 import { getMasteryLabel } from "@/lib/spaced-repetition";
+import { scheduleReviewNotification, calcNotificationDelay } from "@/lib/notifications";
 import { SPACED_REPETITION_INTERVALS } from "@/types";
 import type { AnalysisResult, LearningCard } from "@/types";
 
-interface SessionData {
+interface SessionItem {
   result: AnalysisResult;
   imageBase64: string;
 }
 
+function makeCard(item: SessionItem): LearningCard {
+  const now = Date.now();
+  return {
+    id: generateId(),
+    certId: item.result.certId,
+    imageBase64: item.imageBase64,
+    analysis: item.result,
+    masteryLevel: 0,
+    nextReviewAt: now + SPACED_REPETITION_INTERVALS[0] * 60 * 1000,
+    lastReviewedAt: now,
+    createdAt: now,
+    reviewCount: 0,
+    correctCount: 0,
+  };
+}
+
 export default function AbsorbPage() {
   const router = useRouter();
-  const [data, setData] = useState<SessionData | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [items, setItems] = useState<SessionItem[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [savedSet, setSavedSet] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("passmate-analysis");
-    if (!raw) { router.replace("/scan"); return; }
-    try {
-      setData(JSON.parse(raw) as SessionData);
-    } catch {
-      router.replace("/scan");
+    // 다중 배치 우선 시도, 없으면 구 단일 키 시도 (하위 호환)
+    const batchRaw = sessionStorage.getItem("passmate-analysis-batch");
+    const singleRaw = sessionStorage.getItem("passmate-analysis");
+
+    if (batchRaw) {
+      try {
+        setItems(JSON.parse(batchRaw) as SessionItem[]);
+        return;
+      } catch { /* fall through */ }
     }
+    if (singleRaw) {
+      try {
+        setItems([JSON.parse(singleRaw) as SessionItem]);
+        return;
+      } catch { /* fall through */ }
+    }
+    router.replace("/scan");
   }, [router]);
 
-  async function handleSave() {
-    if (!data || saving || saved) return;
-    setSaving(true);
-    const now = Date.now();
-    const card: LearningCard = {
-      id: generateId(),
-      certId: data.result.certId,
-      imageBase64: data.imageBase64,
-      analysis: data.result,
-      masteryLevel: 0,
-      nextReviewAt: now + SPACED_REPETITION_INTERVALS[0] * 60 * 1000,
-      lastReviewedAt: now,
-      createdAt: now,
-      reviewCount: 0,
-      correctCount: 0,
-    };
-    await saveCard(card);
-    sessionStorage.removeItem("passmate-analysis");
-    setSaved(true);
-    setSaving(false);
+  async function triggerNotification() {
+    const due = await getDueCards();
+    if (due.length > 0) {
+      scheduleReviewNotification(due.length, calcNotificationDelay(due.length));
+    }
   }
 
-  if (!data) {
+  async function handleSave() {
+    if (saving || savedSet.has(currentIndex)) return;
+    setSaving(true);
+    await saveCard(makeCard(items[currentIndex]));
+    setSavedSet((prev) => new Set([...prev, currentIndex]));
+    setSaving(false);
+    triggerNotification();
+  }
+
+  async function handleSaveAll() {
+    if (saving) return;
+    setSaving(true);
+    const unsaved = items.filter((_, i) => !savedSet.has(i));
+    await Promise.all(unsaved.map((item) => saveCard(makeCard(item))));
+    setSavedSet(new Set(items.map((_, i) => i)));
+    setSaving(false);
+    triggerNotification();
+  }
+
+  function handleDone() {
+    sessionStorage.removeItem("passmate-analysis-batch");
+    sessionStorage.removeItem("passmate-analysis");
+    router.push("/scan");
+  }
+
+  if (items.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 size={36} className="text-indigo-400 animate-spin" />
@@ -67,11 +106,45 @@ export default function AbsorbPage() {
     );
   }
 
-  const { result, imageBase64 } = data;
+  const item = items[currentIndex];
+  const { result, imageBase64 } = item;
+  const isSaved = savedSet.has(currentIndex);
+  const allSaved = savedSet.size === items.length;
 
   return (
     <div className="px-5">
       <PageHeader title="AI 해설" subtitle="저장하면 퀴즈에서 다시 만날 수 있어요" backHref="/scan" />
+
+      {/* 페이지 네비게이션 (다중일 때만) */}
+      {items.length > 1 && (
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+            disabled={currentIndex === 0}
+            className="p-2 rounded-xl bg-[var(--secondary)] disabled:opacity-30 active:scale-95 transition-transform"
+          >
+            <ChevronLeft size={20} className="text-[var(--foreground)]" />
+          </button>
+          <div className="flex items-center gap-1.5">
+            {items.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentIndex(i)}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  i === currentIndex ? "bg-indigo-400" : savedSet.has(i) ? "bg-emerald-500" : "bg-[var(--border)]"
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => setCurrentIndex((i) => Math.min(items.length - 1, i + 1))}
+            disabled={currentIndex === items.length - 1}
+            className="p-2 rounded-xl bg-[var(--secondary)] disabled:opacity-30 active:scale-95 transition-transform"
+          >
+            <ChevronRight size={20} className="text-[var(--foreground)]" />
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 pb-6">
         <div className="rounded-2xl overflow-hidden border border-[var(--border)] relative aspect-video bg-[var(--card)]">
@@ -149,14 +222,15 @@ export default function AbsorbPage() {
 
         {/* 액션 버튼 */}
         <div className="flex flex-col gap-3 pt-2">
-          {!saved ? (
+          {/* 현재 카드 저장 */}
+          {!isSaved ? (
             <button
               onClick={handleSave}
               disabled={saving}
               className="w-full py-4 rounded-2xl bg-indigo-500 text-white font-bold text-lg shadow-lg shadow-indigo-500/30 active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 size={20} className="animate-spin" /> : <BookMarked size={20} />}
-              {saving ? "저장 중..." : "내 암기장에 저장하기"}
+              {saving ? "저장 중..." : items.length > 1 ? `이 카드 저장 (${currentIndex + 1}/${items.length})` : "내 암기장에 저장하기"}
             </button>
           ) : (
             <div className="w-full py-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center gap-2">
@@ -164,15 +238,28 @@ export default function AbsorbPage() {
               <span className="text-emerald-400 font-bold">저장 완료! {getMasteryLabel(0)}으로 시작해요</span>
             </div>
           )}
+
+          {/* 전체 저장 버튼 (다중이고 아직 안 저장된 것이 있을 때) */}
+          {items.length > 1 && !allSaved && (
+            <button
+              onClick={handleSaveAll}
+              disabled={saving}
+              className="w-full py-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-semibold active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <BookMarked size={16} />}
+              전체 {items.length}장 한번에 저장
+            </button>
+          )}
+
           <div className="flex gap-3">
             <button
-              onClick={() => { sessionStorage.removeItem("passmate-analysis"); router.push("/scan"); }}
+              onClick={handleDone}
               className="flex-1 py-3 rounded-2xl bg-[var(--secondary)] text-[var(--foreground)] font-semibold active:scale-95 transition-transform flex items-center justify-center gap-2"
             >
               <Camera size={16} /> 다시 스캔
             </button>
             <button
-              onClick={() => { sessionStorage.removeItem("passmate-analysis"); router.push("/play"); }}
+              onClick={() => { sessionStorage.removeItem("passmate-analysis-batch"); sessionStorage.removeItem("passmate-analysis"); router.push("/play"); }}
               className="flex-1 py-3 rounded-2xl bg-pink-500/20 border border-pink-500/30 text-pink-300 font-semibold active:scale-95 transition-transform flex items-center justify-center gap-2"
             >
               <Gamepad2 size={16} /> 퀴즈 풀기

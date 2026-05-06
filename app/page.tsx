@@ -1,16 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { getProfile } from "@/lib/db";
 
 export default function RootPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    let cancelled = false;
+
     getProfile()
       .then((profile) => {
+        if (cancelled) return;
         if (profile?.selectedCertId) {
           router.replace("/scan");
         } else {
@@ -18,9 +28,11 @@ export default function RootPage() {
         }
       })
       .catch(() => {
-        router.replace("/onboarding");
+        if (!cancelled) router.replace("/onboarding");
       });
-  }, [router]);
+
+    return () => { cancelled = true; };
+  }, [mounted, router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

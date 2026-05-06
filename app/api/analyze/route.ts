@@ -28,7 +28,7 @@ function buildPrompt(certId: string, certName: string, personaHint: string): str
 JSON 응답 포맷:
 {
   "summary": "핵심 원리를 2~3문장으로 쉽게 설명 (전문 용어는 괄호로 부연)",
-  "mnemonic": "😄 기억 꿀팁: [창의적이고 재미있는 암기법 — 최소 2문장]",
+  "mnemonic": "기억 꿀팁: [창의적이고 재미있는 암기법 — 최소 2문장]",
   "keywords": ["키워드1", "키워드2", "키워드3"],
   "relatedConcepts": ["관련개념1", "관련개념2"],
   "question": "이 내용과 관련하여 시험에 나올 가능성이 높은 핵심 질문 한 줄",
@@ -38,77 +38,69 @@ JSON 응답 포맷:
 certId: "${certId}"`;
 }
 
+async function analyzeOne(imageBase64: string, certId: string): Promise<AnalysisResult> {
+  const cert = CERTIFICATIONS.find((c) => c.id === certId);
+  const certName = cert?.name ?? certId;
+  const personaHint = cert?.aiPersonaHint ?? "해당 분야 전문 강사";
+
+  const mimeMatch = imageBase64.match(/^data:(image\/\w+);base64,/);
+  const mimeType = (mimeMatch?.[1] ?? "image/jpeg") as "image/jpeg" | "image/png" | "image/webp";
+  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+
+  const response = await genai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { inlineData: { mimeType, data: base64Data } },
+          { text: buildPrompt(certId, certName, personaHint) },
+        ],
+      },
+    ],
+    config: { maxOutputTokens: 1024, temperature: 0.7 },
+  });
+
+  const rawText = response.text ?? "";
+  const jsonText = rawText.replace(/```json\n?|\n?```/g, "").trim();
+  const parsed = JSON.parse(jsonText) as Omit<AnalysisResult, "certId">;
+  return { ...parsed, certId };
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = await request.json() as { imageBase64: string; certId: string };
-    const { imageBase64, certId } = body;
+    const body = await request.json() as { imageBase64?: string; images?: string[]; certId: string };
+    const { certId } = body;
 
-    if (!imageBase64 || !certId) {
-      return NextResponse.json(
-        { error: "imageBase64와 certId가 필요합니다." },
-        { status: 400 }
-      );
+    if (!certId) {
+      return NextResponse.json({ error: "certId가 필요합니다." }, { status: 400 });
     }
 
-    const cert = CERTIFICATIONS.find((c) => c.id === certId);
-    const certName = cert?.name ?? certId;
-    const personaHint = cert?.aiPersonaHint ?? "해당 분야 전문 강사";
+    // 다중 이미지: images 배열 우선, 없으면 단일 imageBase64
+    const images: string[] = body.images?.length
+      ? body.images
+      : body.imageBase64
+        ? [body.imageBase64]
+        : [];
 
-    // base64에서 데이터 URL prefix 분리
-    const mimeMatch = imageBase64.match(/^data:(image\/\w+);base64,/);
-    const mimeType = (mimeMatch?.[1] ?? "image/jpeg") as "image/jpeg" | "image/png" | "image/webp";
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    if (images.length === 0) {
+      return NextResponse.json({ error: "이미지가 필요합니다." }, { status: 400 });
+    }
 
-    const model = genai.models;
-    const response = await model.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              inlineData: {
-                mimeType,
-                data: base64Data,
-              },
-            },
-            {
-              text: buildPrompt(certId, certName, personaHint),
-            },
-          ],
-        },
-      ],
-      config: {
-        maxOutputTokens: 1024,
-        temperature: 0.7,
-      },
-    });
+    // 최대 5장 제한
+    const limited = images.slice(0, 5);
+    const results = await Promise.all(limited.map((img) => analyzeOne(img, certId)));
 
-    const rawText = response.text ?? "";
-
-    // JSON 파싱 (코드 블록 제거)
-    const jsonText = rawText.replace(/```json\n?|\n?```/g, "").trim();
-    const parsed = JSON.parse(jsonText) as Omit<AnalysisResult, "certId">;
-
-    const result: AnalysisResult = {
-      ...parsed,
-      certId,
-    };
-
-    return NextResponse.json(result);
+    // 단일이면 단일 객체, 복수면 배열
+    if (results.length === 1) {
+      return NextResponse.json(results[0]);
+    }
+    return NextResponse.json({ results });
   } catch (error) {
     console.error("AI analyze error:", error);
-
     if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        { error: "AI 응답 파싱 실패. 다시 시도해주세요." },
-        { status: 422 }
-      );
+      return NextResponse.json({ error: "AI 응답 파싱 실패. 다시 시도해주세요." }, { status: 422 });
     }
-
-    return NextResponse.json(
-      { error: "AI 분석 중 오류가 발생했습니다." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "AI 분석 중 오류가 발생했습니다." }, { status: 500 });
   }
 }

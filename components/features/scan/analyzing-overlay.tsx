@@ -12,7 +12,11 @@ const TIPS = [
   "PassMate의 퀴즈 콤보를 10개 이상 달성하면 집중력이 극대화돼요!",
 ];
 
-export function AnalyzingOverlay() {
+interface AnalyzingOverlayProps {
+  progress?: { done: number; total: number } | null;
+}
+
+export function AnalyzingOverlay({ progress }: AnalyzingOverlayProps) {
   const [tipIndex, setTipIndex] = useState(0);
   const [dots, setDots] = useState(1);
 
@@ -21,6 +25,8 @@ export function AnalyzingOverlay() {
     const dotTimer = setInterval(() => setDots((d) => (d % 3) + 1), 500);
     return () => { clearInterval(tipTimer); clearInterval(dotTimer); };
   }, []);
+
+  const isMultiple = progress && progress.total > 1;
 
   return (
     <div className="fixed inset-0 bg-[var(--background)]/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center px-6">
@@ -36,10 +42,25 @@ export function AnalyzingOverlay() {
       <h2 className="text-xl font-bold text-[var(--foreground)] mb-2">
         AI 선생님이 분석 중{".".repeat(dots)}
       </h2>
-      <p className="text-sm text-[var(--muted-foreground)] mb-10 text-center">
-        사진에서 핵심 개념을 추출하고<br />
-        특별한 암기법을 만들고 있어요
-      </p>
+
+      {isMultiple ? (
+        <div className="w-full mb-10">
+          <p className="text-sm text-[var(--muted-foreground)] text-center mb-3">
+            {progress.done}/{progress.total}장 처리 중
+          </p>
+          <div className="h-2 bg-[var(--secondary)] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+              style={{ width: `${(progress.done / progress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--muted-foreground)] mb-10 text-center">
+          사진에서 핵심 개념을 추출하고<br />
+          특별한 암기법을 만들고 있어요
+        </p>
+      )}
 
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 w-full">
         <div className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-2">
