@@ -59,23 +59,30 @@ async function analyzeOne(imageBase64: string, certId: string): Promise<Analysis
       },
     ],
     config: {
-      maxOutputTokens: 1024,
+      maxOutputTokens: 8000,
       temperature: 0.7,
-      responseMimeType: "application/json",
     },
   });
 
-  const rawText = response.text ?? "";
-  // 혹시 마크다운 코드블록이 포함되어도 제거 후 파싱
+  // gemini-2.5-flash는 thinking 모델 — candidates에서 직접 추출
+  const rawText =
+    response.text ??
+    response.candidates?.[0]?.content?.parts
+      ?.filter((p: { text?: string }) => p.text)
+      .map((p: { text?: string }) => p.text)
+      .join("") ??
+    "";
+
+  if (!rawText) throw new SyntaxError("No JSON object found");
+
   const jsonText = rawText
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
 
-  // JSON 객체 범위만 추출 (앞뒤 불필요한 텍스트 제거)
   const start = jsonText.indexOf("{");
   const end = jsonText.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new SyntaxError("No JSON object found");
+  if (start === -1 || end === -1) throw new SyntaxError(`No JSON object found in: ${jsonText.slice(0, 100)}`);
   const parsed = JSON.parse(jsonText.slice(start, end + 1)) as Omit<AnalysisResult, "certId">;
   return { ...parsed, certId };
 }
