@@ -91,26 +91,29 @@ async function analyzeOne(imageBase64: string, certId: string): Promise<Analysis
     },
   });
 
-  // gemini-2.5-flash는 thinking 모델 — candidates에서 직접 추출
+  // thinking 모델은 thought:true part를 제외한 텍스트만 추출
+  type Part = { text?: string; thought?: boolean };
+  const parts: Part[] = response.candidates?.[0]?.content?.parts ?? [];
   const rawText =
-    response.text ??
-    response.candidates?.[0]?.content?.parts
-      ?.filter((p: { text?: string }) => p.text)
-      .map((p: { text?: string }) => p.text)
-      .join("") ??
+    parts
+      .filter((p) => p.text && !p.thought)
+      .map((p) => p.text)
+      .join("") ||
+    response.text ||
     "";
 
   if (!rawText) throw new SyntaxError("No JSON object found");
 
-  const jsonText = rawText
+  // 마크다운 코드블록 제거 후 JSON 범위 추출
+  const cleaned = rawText
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
 
-  const start = jsonText.indexOf("{");
-  const end = jsonText.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new SyntaxError(`No JSON object found in: ${jsonText.slice(0, 100)}`);
-  const parsed = JSON.parse(jsonText.slice(start, end + 1)) as Omit<AnalysisResult, "certId">;
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end === -1) throw new SyntaxError(`No JSON found: ${cleaned.slice(0, 200)}`);
+  const parsed = JSON.parse(cleaned.slice(start, end + 1)) as Omit<AnalysisResult, "certId">;
   return { ...parsed, certId };
 }
 
