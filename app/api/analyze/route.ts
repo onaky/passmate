@@ -75,7 +75,7 @@ async function analyzeOne(imageBase64: string, certId: string): Promise<Analysis
   const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
   const response = await genai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-pro-preview",
     contents: [
       {
         role: "user",
